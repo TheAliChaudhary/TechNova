@@ -1,6 +1,5 @@
-import Layout from '../../components/Layout';
 // App.js
-import React, { useState, useCallback } from "react";
+import React, { useState } from "react";
 import {
     Card,
     CardContent,
@@ -11,64 +10,21 @@ import {
 } from "@mui/material";
 import { DndProvider, useDrag, useDrop } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
-import { withAuth } from '@/components/withAuth';
 
 const ItemTypes = {
     TASK: "task",
 };
 
-type Task = { name: string };
-type BoardType = {
-    Backlog: Task[];
-    "In Progress": Task[];
-    Complete: Task[];
-};
 
-type TaskCardProps = {
-    task: Task;
-    fromColumn: keyof BoardType;
-    onUpdateTask: (oldName: string, newName: string, column: keyof BoardType) => void;
-    onDeleteTask: (name: string, column: keyof BoardType) => void;
-};
-
-type ColumnProps = {
-    name: keyof BoardType;
-    tasks: Task[];
-    moveTask: (task: Task, from: keyof BoardType, to: keyof BoardType) => void;
-    onAddTask?: (name: string) => void;
-    onUpdateTask: (oldName: string, newName: string, column: keyof BoardType) => void;
-    onDeleteTask: (name: string, column: keyof BoardType) => void;
-};
-
-const initialBoard: BoardType = {
-    Backlog: [
-        { name: "Design Login" },
-        { name: "Create Wireframes" },
-    ],
-    "In Progress": [
-        { name: "Build Header" },
-    ],
-    Complete: [
-        { name: "Project Setup" },
-    ],
-};
-
-const TaskCard: React.FC<TaskCardProps> = ({ task, fromColumn, onUpdateTask, onDeleteTask }) => {
+const TaskCard = ({ task, fromColumn, handleEditTask, setEnableEditing }) => {
     const [, drag] = useDrag({
         type: ItemTypes.TASK,
         item: { task, fromColumn },
     });
-    const [enableEditing, setEnableEditing] = useState(false);
-    const [editValue, setEditValue] = useState(task.name);
-
-    // Use callback ref for MUI compatibility
-    const cardRef = useCallback((node: HTMLDivElement | null) => {
-        if (node) drag(node);
-    }, [drag]);
 
     return (
         <Card
-            ref={cardRef}
+            ref={drag}
             sx={{
                 mb: 1.5,
                 cursor: "grab",
@@ -76,55 +32,38 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, fromColumn, onUpdateTask, onD
                 "&:hover": { backgroundColor: "#f9f9f9" },
             }}
         >
-            <CardContent>
-                {enableEditing ? (
-                    <>
-                        <input
-                            type="text"
-                            value={editValue}
-                            onChange={e => setEditValue(e.target.value)}
-                            style={{ marginRight: 8 }}
-                        />
-                        <button
-                            onClick={() => {
-                                setEnableEditing(false);
-                                onUpdateTask(task.name, editValue, fromColumn);
-                            }}
-                        >
-                            Save
-                        </button>
-                    </>
-                ) : (
-                    <Typography variant="body1">{task.name}</Typography>
-                )}
+            <CardContent >
+                <Typography variant="body1">{task}</Typography>
                 <div>
-                    <button onClick={() => setEnableEditing(true)}>Edit</button>
-                    <button onClick={() => onDeleteTask(task.name, fromColumn)}>Delete</button>
+                    <button onClick={() => { handleEditTask(task) }} > Edit </button>
+                    <button> Delete</button>
                 </div>
             </CardContent>
         </Card>
     );
 };
 
-const Column: React.FC<ColumnProps> = ({ name, tasks, moveTask, onAddTask, onUpdateTask, onDeleteTask }) => {
-    const [taskName, setTaskName] = useState("");
+const Column = ({ name, tasks, moveTask, handleAddTask }) => {
+    const [taskName, setTaskName] = useState('');
+    const [enableEditing, setEnableEditing] = useState(false);
     const [, drop] = useDrop({
         accept: ItemTypes.TASK,
-        drop: (item: { task: Task; fromColumn: keyof BoardType }) => {
+        drop: (item) => {
             if (item.fromColumn !== name) {
                 moveTask(item.task, item.fromColumn, name);
             }
         },
     });
 
-    // Use callback ref for MUI compatibility
-    const paperRef = useCallback((node: HTMLDivElement | null) => {
-        if (node) drop(node);
-    }, [drop]);
-
+    const handleEditTask = (tasktoEdit) => {
+        console.log(tasktoEdit);
+        setTaskName(tasktoEdit);
+        setEnableEditing(true);
+    }
+    console.log(taskName);
     return (
         <Paper
-            ref={paperRef}
+            ref={drop}
             elevation={4}
             sx={{
                 p: 2,
@@ -136,102 +75,64 @@ const Column: React.FC<ColumnProps> = ({ name, tasks, moveTask, onAddTask, onUpd
             <Typography variant="h6" sx={{ mb: 2 }}>
                 {name}
             </Typography>
-            {onAddTask && (
+            {name === 'Backlog' &&
                 <div>
-                    <input
-                        type="text"
-                        value={taskName}
-                        onChange={e => setTaskName(e.target.value)}
-                    />
-                    <button
-                        onClick={() => {
-                            if (taskName.trim()) {
-                                onAddTask(taskName);
-                                setTaskName("");
-                            }
-                        }}
-                    >
-                        Add Task
-                    </button>
+                    <input type="text" value={taskName} onChange={(e) => setTaskName(e.target.value)} />
+                    <button onClick={() => handleAddTask(taskName)}>Add Task</button>
                 </div>
-            )}
-            {tasks.map((task) => (
-                <TaskCard
-                    key={task.name}
-                    task={task}
-                    fromColumn={name}
-                    onUpdateTask={onUpdateTask}
-                    onDeleteTask={onDeleteTask}
-                />
+            }
+
+            {tasks.map((task, index) => (
+                <TaskCard key={index} task={task} fromColumn={name} handleEditTask={handleEditTask} setEnableEditing={setEnableEditing} />
             ))}
         </Paper>
     );
 };
 
-// function TaskP\age() {
-const TaskPage: React.FC = () => {
-    const [board, setBoard] = useState<BoardType>(initialBoard);
+export default function App() {
+    const [board, setBoard] = useState({
+        Backlog: ["Design Login", "Create Wireframes"],
+        "In Progress": ["Build Header"],
+        Complete: ["Project Setup"],
+    });
 
-    const moveTask = (task: Task, from: keyof BoardType, to: keyof BoardType) => {
-        setBoard(prev => {
+    const moveTask = (task, from, to) => {
+        setBoard((prev) => {
             const updated = { ...prev };
-            updated[from] = updated[from].filter(t => t.name !== task.name);
+            updated[from] = updated[from].filter((t) => t !== task);
             updated[to] = [...updated[to], task];
             return updated;
         });
     };
-
-    const handleAddTask = (name: string) => {
-        setBoard(prev => ({
-            ...prev,
-            Backlog: [...prev.Backlog, { name }],
-        }));
-    };
-
-    const onUpdateTask = (oldName: string, newName: string, column: keyof BoardType) => {
-        setBoard(prev => {
-            const updated = { ...prev };
-            updated[column] = updated[column].map(t =>
-                t.name === oldName ? { ...t, name: newName } : t
-            );
-            return updated;
-        });
-    };
-
-    const onDeleteTask = (name: string, column: keyof BoardType) => {
-        setBoard(prev => {
-            const updated = { ...prev };
-            updated[column] = updated[column].filter(t => t.name !== name);
-            return updated;
-        });
-    };
+    // const handleAddTask = (newtask) => {
+    //     // console.log("newtask: ", newtask)
+    //     setBoard((prev)=>[...prev, newtask])
+    //   }
+    const handleAddTask = (newtask) => {
+        // console.log("newtask: ", newtask)
+        setBoard(prev => ({ ...prev, Backlog: [...prev.Backlog, newtask] }))
+    }
+    //   const handleAddTasks = (name: string) => {
+    //     setBoard(prev => ({
+    //         ...prev,
+    //         Backlog: [...prev.Backlog, { name }],
+    //     }));
+    // };
 
     return (
-        <Layout>
-            <DndProvider backend={HTML5Backend}>
-                <Container maxWidth="lg" sx={{ mt: 5 }}>
-                    <Typography variant="h4" align="center" gutterBottom>
-                        Kanban Board
-                    </Typography>
-                    <Grid container spacing={3}>
-                        {Object.entries(board).map(([column, tasks]) => (
-                            <Grid key={column}>
-                                <Column
-                                    name={column as keyof BoardType}
-                                    tasks={tasks}
-                                    moveTask={moveTask}
-                                    onAddTask={column === "Backlog" ? handleAddTask : undefined}
-                                    onUpdateTask={onUpdateTask}
-                                    onDeleteTask={onDeleteTask}
-                                />
-                            </Grid>
-                        ))}
-                    </Grid>
-                </Container>
-            </DndProvider>
-        </Layout>
+        <DndProvider backend={HTML5Backend}>
+            <Container maxWidth="lg" sx={{ mt: 5 }}>
+                <Typography variant="h4" align="center" gutterBottom>
+                    Kanban Board
+                </Typography>
+                <Grid container spacing={3}>
+                    {Object.entries(board).map(([column, tasks]) => (
+                        <Grid item xs={12} md={4} key={column}>
+                            <Column name={column} tasks={tasks} moveTask={moveTask} handleAddTask={handleAddTask} />
+                        </Grid>
+                    ))}
+                </Grid>
+            </Container>
+        </DndProvider>
     );
-};
-
-export default TaskPage;
-// export default withAuth(TaskPage); 
+}
