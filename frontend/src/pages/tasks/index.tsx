@@ -168,8 +168,8 @@ const Column: React.FC<ColumnProps> = ({ name, tasks, moveTask, onAddTask, onUpd
     );
 };
 
-// function TaskPage() {
-    const TaskPage: React.FC = () => {
+// function TaskP\age() {
+const TaskPage: React.FC = () => {
     const [board, setBoard] = useState<BoardType>(initialBoard);
 
     const moveTask = (task: Task, from: keyof BoardType, to: keyof BoardType) => {

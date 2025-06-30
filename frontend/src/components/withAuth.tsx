@@ -10,7 +10,9 @@ export function withAuth<P extends object>(Component: React.ComponentType<P>) {
 
     useEffect(() => {
       if (!loading && !user) {
-        router.replace(`/login?redirect=${encodeURIComponent(router.asPath)}`);
+        router.push('/login');
+      }else{
+        router.replace(router.asPath);
       }
     }, [user, loading, router]);
 

@@ -1,4 +1,4 @@
-import { Controller, Post, Body, BadRequestException } from '@nestjs/common';
+import { Controller, Post, Body, BadRequestException, Get } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { User } from './schemas/user.schema';
@@ -18,5 +18,11 @@ export class UsersController {
     const user = await this.userModel.create({ name, email, password: hashed });
     const { password: _, ...result } = user.toObject();
     return result;
+  }
+
+  @Get()
+  async findAll() {
+    const users = await this.userModel.find().select('-password');
+    return users;
   }
 } 
