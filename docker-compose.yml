@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "3001:3000"
+    environment:
+      - MONGODB_URI=mongodb://host.docker.internal:27017/TechNova
+      - JWT_SECRET=your_jwt_secret_key_here
+    networks:
+      - technova-network
+    volumes:
+      - ./backend:/usr/src/app
+      - backend_node_modules:/usr/src/app/node_modules
+    command: npm run start:dev
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:3001
+    depends_on:
+      - backend
+    networks:
+      - technova-network
+    volumes:
+      - ./frontend:/usr/src/app
+      - frontend_node_modules:/usr/src/app/node_modules
+    command: npm run dev
+
+networks:
+  technova-network:
+    driver: bridge
+
+volumes:
+  backend_node_modules:
+  frontend_node_modules: 
+  
